@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Training Events</title>
+<!-- MSAL for Microsoft 365 authentication — self-hosted, no external CDN dependency -->
+<script src="msal-browser.min.js"></script>
+<style>
+/* ─── Reset & base ─────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ff:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'Courier New',monospace;
+  --bg:#ffffff;--bg2:#f7f7f6;--bg3:#f0efed;
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --teal:#0F6E56;--teal-bg:#E1F5EE;--teal-text:#085041;
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-text:#0C447C;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-text:#633806;
+  --green:#3B6D11;--green-bg:#EAF3DE;--green-text:#27500A;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --radius:10px;--radius-sm:7px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;
+  --text:#f5f5f0;--text2:#aaa;--text3:#666;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
+  --teal-bg:#04342C;--teal-text:#9FE1CB;
+  --blue-bg:#042C53;--blue-text:#85B7EB;
+  --amber-bg:#412402;--amber-text:#FAC775;
+  --green-bg:#173404;--green-text:#C0DD97;
+  --red-bg:#501313;
+}}
+body{font-family:var(--ff);background:var(--bg3);color:var(--text);min-height:100vh;font-size:15px;line-height:1.5}
+
+/* ─── Layout ───────────────────────────────────────────── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:230px;flex-shrink:0;background:var(--bg2);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:1.25rem 0;position:sticky;top:0;height:100vh}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{padding:0.875rem 1.5rem;background:var(--bg);border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:5}
+.content{padding:1.5rem;flex:1}
+@media(max-width:640px){
+  .sidebar{display:none}
+  .mobile-nav{display:flex}
+}
+
+/* ─── Sidebar ──────────────────────────────────────────── */
+.sb-logo{padding:0 1.25rem 1.125rem;border-bottom:0.5px solid var(--border);margin-bottom:0.75rem}
+.sb-wordmark{font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--text3);text-transform:uppercase;margin-bottom:3px}
+.sb-title{font-size:15px;font-weight:600;line-height:1.3}
+.sb-section{padding:0 0.75rem;margin-bottom:0.5rem}
+.sb-label{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);padding:0 0.5rem;margin-bottom:4px;display:block}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;width:100%;text-align:left;font-family:var(--ff)}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:var(--bg);color:var(--text);font-weight:600;box-shadow:0 0 0 0.5px var(--border)}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:0.55}
+.nav-btn.active .nav-icon{opacity:1}
+.sb-footer{margin-top:auto;padding:0.875rem 1.25rem;border-top:0.5px solid var(--border)}
+.user-row{display:flex;align-items:center;gap:9px}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--blue-text);flex-shrink:0}
+.user-name{font-size:12px;font-weight:600;line-height:1.2}
+.user-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.status-dot.on{background:#22c55e}
+.status-dot.off{background:var(--text3)}
+
+/* ─── Buttons ──────────────────────────────────────────── */
+.btn{padding:7px 14px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:var(--ff);font-weight:500;border:0.5px solid var(--border2);background:var(--bg);color:var(--text);display:inline-flex;align-items:center;gap:6px;line-height:1;white-space:nowrap}
+.btn:hover{background:var(--bg2)}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--text);color:var(--bg);border-color:transparent}
+.btn-primary:hover{opacity:0.85}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-ghost:hover{background:var(--bg2)}
+.btn-danger{color:var(--red);border-color:var(--red)}
+.btn-danger:hover{background:var(--red-bg)}
+.btn-ms{background:#0078d4;color:#fff;border-color:transparent;gap:8px}
+.btn-ms:hover{background:#006cbd}
+
+/* ─── Cards ────────────────────────────────────────────── */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.125rem 1.25rem}
+
+/* ─── Event tiles (public grid) ────────────────────────── */
+.event-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.event-tile{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.125rem 1.25rem;cursor:pointer;transition:border-color 0.12s,transform 0.1s}
+.event-tile:hover{border-color:var(--border2);transform:translateY(-1px)}
+.event-tile:active{transform:scale(0.99)}
+.tile-date{font-size:11px;font-weight:600;letter-spacing:0.04em;color:var(--text3);margin-bottom:6px;text-transform:uppercase}
+.tile-title{font-size:16px;font-weight:600;line-height:1.3;margin-bottom:4px}
+.tile-loc{font-size:12px;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:5px}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.prog-fill{height:100%;border-radius:2px;transition:width 0.4s}
+
+/* ─── Badges ───────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:0.02em}
+.badge-teal{background:var(--teal-bg);color:var(--teal-text)}
+.badge-blue{background:var(--blue-bg);color:var(--blue-text)}
+.badge-amber{background:var(--amber-bg);color:var(--amber-text)}
+.badge-green{background:var(--green-bg);color:var(--green-text)}
+.badge-gray{background:var(--bg3);color:var(--text2)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+
+/* ─── Forms ────────────────────────────────────────────── */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:8px 11px;border:0.5px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;background:var(--bg);color:var(--text);font-family:var(--ff)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#378ADD;box-shadow:0 0 0 3px rgba(55,138,221,0.12)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ─── Notices ──────────────────────────────────────────── */
+.notice{padding:10px 13px;border-radius:var(--radius-sm);font-size:13px;line-height:1.5}
+.notice-blue{background:var(--blue-bg);color:var(--blue-text)}
+.notice-green{background:var(--green-bg);color:var(--green-text)}
+.notice-amber{background:var(--amber-bg);color:var(--amber-text)}
+.notice-teal{background:var(--teal-bg);color:var(--teal-text)}
+.notice-red{background:var(--red-bg);color:var(--red)}
+
+/* ─── Modal overlay ────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:flex-start;justify-content:center;padding:48px 16px;z-index:100;overflow-y:auto}
+.modal{background:var(--bg);border-radius:var(--radius);border:0.5px solid var(--border);padding:1.5rem;width:100%;max-width:520px}
+.modal-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.125rem}
+.modal-title{font-size:17px;font-weight:600;line-height:1.3;flex:1;padding-right:12px}
+
+/* ─── Admin table ──────────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--text3);padding:8px 12px;border-bottom:0.5px solid var(--border);text-align:left;white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:var(--bg2)}
+
+/* ─── Stats ────────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
+.stat{background:var(--bg2);border-radius:var(--radius-sm);padding:12px 14px}
+.stat-label{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
+.stat-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ─── Code block ───────────────────────────────────────── */
+.code{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:var(--mono);font-size:12px;color:var(--text2);white-space:pre;overflow-x:auto;line-height:1.8}
+
+/* ─── Attendee chips ───────────────────────────────────── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:4px 10px 4px 5px;font-size:12px}
+.chip-av{width:20px;height:20px;border-radius:50%;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--blue-text)}
+
+/* ─── Divider ──────────────────────────────────────────── */
+.div{border:none;border-top:0.5px solid var(--border);margin:14px 0}
+
+/* ─── Spinner ──────────────────────────────────────────── */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── Login page ───────────────────────────────────────── */
+.login-wrap{display:flex;align-items:center;justify-content:center;flex:1;padding:2rem}
+.login-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:360px}
+
+/* ─── Setup tab ────────────────────────────────────────── */
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--text);color:var(--bg);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-row{display:flex;gap:14px;margin-bottom:1.25rem;align-items:flex-start}
+.perm-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border)}
+.perm-row:last-child{border-bottom:none}
+
+/* ─── Mobile nav bar ───────────────────────────────────── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:0.5px solid var(--border);padding:8px 0;z-index:50;justify-content:space-around}
+.mob-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;padding:4px 8px;font-family:var(--ff)}
+.mob-btn.active{color:var(--text)}
+
+/* ─── Toast ────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:var(--bg);padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;z-index:200;opacity:0;transform:translateY(8px);transition:opacity 0.2s,transform 0.2s;pointer-events:none;max-width:340px;line-height:1.5}
+.toast.show{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     CONFIGURATION — edit these before deploying
+     ═════════════════════════════════════════════════ -->
+<script>
+const CONFIG = {
+  // Azure App Registration
+  clientId:     'e1ff910e-ea43-415d-9498-8304ace4f60d',
+  tenantId:     '39250639-d6da-4f6b-a3f2-eb6e2b3f6b70',      // or 'common' for multi-tenant
+  redirectUri:  'https://gettystechnology.github.io/Gettys-Training-Hub/',
+
+  // SharePoint — your site URL and list name
+  spSiteUrl:    'https://gettysgroup.sharepoint.com/sites/InformationTechnology54',
+  spListName:   'TrainingEvents',           // must match the list you created
+
+  // Admin password (consider Azure AD group check for production)
+  adminPassword: '__ADMIN_PASSWORD__',
+};
+</script>
+
+<div class="shell">
+
+  <!-- ── Sidebar ────────────────────────────────────── -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-wordmark">Your Company</div>
+      <div class="sb-title">Training Hub</div>
+    </div>
+    <div class="sb-section">
+      <span class="sb-label">Public</span>
+      <button class="nav-btn" id="nav-public" onclick="App.go('public')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".35"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".35"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".35"/></svg>
+        Browse events
+      </button>
+    </div>
+    <div class="sb-section" style="margin-top:8px">
+      <span class="sb-label">Admin</span>
+      <button class="nav-btn" id="nav-admin" onclick="App.go(App.adminAuthed?'admin':'login')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Manage events
+      </button>
+      <button class="nav-btn" id="nav-setup" onclick="App.go(App.adminAuthed?'setup':'login')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        M365 setup
+      </button>
+    </div>
+    <div class="sb-footer">
+      <div id="user-area">
+        <div class="user-row">
+          <div class="user-avatar" id="user-initials">--</div>
+          <div>
+            <div class="user-name" id="user-name">Not signed in</div>
+            <div class="user-status"><span class="status-dot off" id="status-dot"></span><span id="status-text">M365 disconnected</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main area ──────────────────────────────────── -->
+  <div class="main" id="main-area">
+    <div class="topbar" id="topbar">
+      <div>
+        <div style="font-size:15px;font-weight:600" id="topbar-title">Training events</div>
+        <div style="font-size:12px;color:var(--text3)" id="topbar-sub">Loading...</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center" id="topbar-actions"></div>
+    </div>
+    <div class="content" id="content">
+      <div style="display:flex;align-items:center;gap:10px;padding:2rem;color:var(--text2)">
+        <span class="spinner"></span> Loading events...
+      </div>
+    </div>
+  </div>
+
+</div><!-- .shell -->
+
+<!-- Mobile nav -->
+<div class="mobile-nav" id="mobile-nav">
+  <button class="mob-btn active" id="mob-public" onclick="App.go('public')">
+    <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".35"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".35"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".35"/></svg>
+    Events
+  </button>
+  <button class="mob-btn" id="mob-admin" onclick="App.go(App.adminAuthed?'admin':'login')">
+    <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Admin
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Modal container -->
+<div id="modal-root"></div>
+
+
+<!-- ══════════════════════════════════════════════════
+     APPLICATION LOGIC
+     ═════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+function bootApp() {
+  // Guard: msal global is set by msal-browser.min.js UMD bundle
+  if (typeof msal === 'undefined' || !msal.PublicClientApplication) {
+    document.getElementById('content').innerHTML =
+      '<div class="notice notice-amber">msal-browser.min.js failed to load. Make sure it is in the same folder as index.html on your web server.</div>';
+    return;
+  }
+
+/* ── MSAL setup ─────────────────────────────────────────── */
+const msalConfig = {
+  auth: {
+    clientId: CONFIG.clientId,
+    authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
+    redirectUri: CONFIG.redirectUri,
+  },
+  cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
+};
+const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+const SCOPES = [
+  'https://graph.microsoft.com/Calendars.ReadWrite',
+  'https://graph.microsoft.com/Sites.ReadWrite.All',
+  'https://graph.microsoft.com/User.Read',
+  'offline_access'
+];
+
+/* ── Graph API helpers ──────────────────────────────────── */
+const Graph = {
+  async getToken() {
+    const accounts = msalInstance.getAllAccounts();
+    if (!accounts.length) throw new Error('Not authenticated');
+    try {
+      const res = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
+      return res.accessToken;
+    } catch {
+      const res = await msalInstance.acquireTokenPopup({ scopes: SCOPES });
+      return res.accessToken;
+    }
+  },
+
+  async call(method, url, body) {
+    const token = await this.getToken();
+    const opts = {
+      method,
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Graph error ${res.status}`);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  },
+
+  get: (url) => Graph.call('GET', url),
+  post: (url, body) => Graph.call('POST', url, body),
+  patch: (url, body) => Graph.call('PATCH', url, body),
+  delete: (url) => Graph.call('DELETE', url),
+
+  /* ── SharePoint helpers ─────────────────────────────── */
+  async getSpSiteId() {
+    if (Graph._siteId) return Graph._siteId;
+    const host = new URL(CONFIG.spSiteUrl).hostname;
+    const path = new URL(CONFIG.spSiteUrl).pathname;
+    const data = await Graph.get(`https://graph.microsoft.com/v1.0/sites/${host}:${path}`);
+    Graph._siteId = data.id;
+    return data.id;
+  },
+
+  async getSpListId() {
+    if (Graph._listId) return Graph._listId;
+    const siteId = await Graph.getSpSiteId();
+    const data = await Graph.get(`https://graph.microsoft.com/v1.0/sites/${siteId}/lists?$filter=displayName eq '${CONFIG.spListName}'`);
+    if (!data.value.length) throw new Error(`SharePoint list "${CONFIG.spListName}" not found`);
+    Graph._listId = data.value[0].id;
+    return data.value[0].id;
+  },
+
+  /* Fetch all events from SharePoint */
+  async getEvents() {
+    const siteId = await Graph.getSpSiteId();
+    const listId = await Graph.getSpListId();
+    const data = await Graph.get(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items?$expand=fields&$top=100`
+    );
+    return data.value.map(item => ({
+      id: item.id,
+      title: item.fields.Title || '',
+      date: item.fields.EventDate ? item.fields.EventDate.slice(0, 10) : '',
+      time: item.fields.EventDate ? item.fields.EventDate.slice(11, 16) : '',
+      location: item.fields.Location || '',
+      desc: item.fields.Description || '',
+      capacity: parseInt(item.fields.Capacity) || 20,
+      attendees: JSON.parse(item.fields.Attendees || '[]'),
+      calId: item.fields.OutlookEventId || null,
+      created: item.fields.Created,
+    }));
+  },
+
+  /* Create a new event in SharePoint */
+  async createEvent(ev) {
+    const siteId = await Graph.getSpSiteId();
+    const listId = await Graph.getSpListId();
+    const data = await Graph.post(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items`,
+      { fields: {
+        Title: ev.title,
+        EventDate: `${ev.date}T${ev.time}:00`,
+        Location: ev.location,
+        Description: ev.desc,
+        Capacity: ev.capacity,
+        Attendees: '[]',
+        OutlookEventId: '',
+      }}
+    );
+    return data.id;
+  },
+
+  /* Update attendees + optionally OutlookEventId in SharePoint */
+  async updateEventItem(spId, attendees, calId) {
+    const siteId = await Graph.getSpSiteId();
+    const listId = await Graph.getSpListId();
+    const fields = { Attendees: JSON.stringify(attendees) };
+    if (calId) fields.OutlookEventId = calId;
+    await Graph.patch(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${spId}/fields`,
+      fields
+    );
+  },
+
+  /* Delete an event from SharePoint */
+  async deleteEvent(spId) {
+    const siteId = await Graph.getSpSiteId();
+    const listId = await Graph.getSpListId();
+    await Graph.delete(
+      `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${listId}/items/${spId}`
+    );
+  },
+
+  /* ── Calendar helpers ───────────────────────────────── */
+
+  /* Create Outlook calendar event, return the event ID */
+  async createCalendarEvent(ev, firstAttendee) {
+    const start = new Date(`${ev.date}T${ev.time}:00`);
+    const end   = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour default
+
+    const data = await Graph.post('https://graph.microsoft.com/v1.0/me/events', {
+      subject: ev.title,
+      start:   { dateTime: start.toISOString(), timeZone: 'UTC' },
+      end:     { dateTime: end.toISOString(),   timeZone: 'UTC' },
+      location:{ displayName: ev.location },
+      body:    { contentType: 'HTML', content: ev.desc },
+      attendees: [{
+        emailAddress: { address: firstAttendee.email, name: firstAttendee.name },
+        type: 'required'
+      }]
+    });
+    return data.id;
+  },
+
+  /* Patch an existing calendar event to add a new attendee */
+  async addAttendeeToCalEvent(calId, newAttendee, allAttendees) {
+    const attendees = allAttendees.map(a => ({
+      emailAddress: { address: a.email, name: a.name },
+      type: 'required'
+    }));
+    await Graph.patch(`https://graph.microsoft.com/v1.0/me/events/${calId}`, { attendees });
+  },
+
+  /* Delete calendar event */
+  async deleteCalendarEvent(calId) {
+    await Graph.delete(`https://graph.microsoft.com/v1.0/me/events/${calId}`);
+  }
+};
+
+/* ── Utility helpers ────────────────────────────────────── */
+function fmtDate(d, t) {
+  if (!d) return '—';
+  return new Date(`${d}T${t||'00:00'}`).toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+  });
+}
+function fmtTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hr = parseInt(h);
+  return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
+}
+function initials(name) {
+  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+}
+function pct(ev) {
+  return ev.capacity ? Math.round((ev.attendees.length / ev.capacity) * 100) : 0;
+}
+function spots(ev) {
+  return Math.max(0, ev.capacity - ev.attendees.length);
+}
+function statusBadge(ev) {
+  const s = spots(ev);
+  if (s === 0) return '<span class="badge badge-red">Full</span>';
+  if (s <= 3)  return `<span class="badge badge-amber">${s} spot${s===1?'':'s'} left</span>`;
+  return `<span class="badge badge-teal">${s} open</span>`;
+}
+function calBadge(ev) {
+  return ev.calId
+    ? '<span class="badge badge-green">✓ On calendar</span>'
+    : '<span class="badge badge-gray">No calendar</span>';
+}
+function progColor(p) {
+  return p >= 100 ? '#E24B4A' : p >= 75 ? '#EF9F27' : '#1D9E75';
+}
+
+/* ── Toast ──────────────────────────────────────────────── */
+function toast(msg, duration = 3500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), duration);
+}
+
+/* ── Modal helpers ──────────────────────────────────────── */
+function showModal(html) {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="overlay" id="overlay">${html}</div>`;
+  root.querySelector('.overlay').addEventListener('click', e => {
+    if (e.target.id === 'overlay') closeModal();
+  });
+}
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN APP CONTROLLER
+   ═════════════════════════════════════════════════ */
+const App = {
+  page: 'public',
+  adminAuthed: false,
+  msAccount: null,
+  userProfile: null,   // { name, email } fetched from Graph /me
+  events: [],
+  loading: false,
+
+  async init() {
+    // Handle MSAL redirect
+    await msalInstance.handleRedirectPromise();
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length) {
+      this.msAccount = accounts[0];
+      await this.fetchUserProfile();
+      this.updateUserArea();
+      await this.loadEvents();
+    } else {
+      // Try silent SSO — picks up existing browser session without a popup
+      try {
+        const res = await msalInstance.ssoSilent({ scopes: SCOPES });
+        this.msAccount = res.account;
+        await this.fetchUserProfile();
+        this.updateUserArea();
+        await this.loadEvents();
+      } catch {
+        await this.loadEvents(); // not signed in — load demo data
+      }
+    }
+    this.go('public');
+  },
+
+  /* Fetch display name + email from Graph /me */
+  async fetchUserProfile() {
+    try {
+      const data = await Graph.get('https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName');
+      this.userProfile = {
+        name:  data.displayName || this.msAccount.name || '',
+        email: data.mail || data.userPrincipalName || '',
+      };
+    } catch {
+      // Fallback to MSAL account info if Graph call fails
+      this.userProfile = {
+        name:  this.msAccount.name || '',
+        email: this.msAccount.username || '',
+      };
+    }
+  },
+
+  updateUserArea() {
+    const acc = this.msAccount;
+    if (acc) {
+      const name = acc.name || acc.username;
+      document.getElementById('user-initials').textContent = initials(name);
+      document.getElementById('user-name').textContent = name;
+      document.getElementById('status-dot').className = 'status-dot on';
+      document.getElementById('status-text').textContent = 'M365 connected';
+    }
+  },
+
+  async connectM365() {
+    try {
+      const res = await msalInstance.loginPopup({ scopes: SCOPES });
+      this.msAccount = res.account;
+      await this.fetchUserProfile();
+      this.updateUserArea();
+      await this.loadEvents();
+      toast(`Signed in as ${this.userProfile?.name || this.msAccount.name}`);
+      this.render();
+    } catch (e) {
+      toast('Sign-in cancelled or failed: ' + e.message);
+    }
+  },
+
+  async loadEvents() {
+    if (!this.msAccount) {
+      // Demo data when not signed in
+      this.events = [
+        { id:'demo1', title:'Excel Fundamentals', date:'2026-05-05', time:'10:00', location:'Room 4A · Headquarters', desc:'Master formulas, pivot tables, VLOOKUP, and charts for Office 365 users.', capacity:15, attendees:[{name:'Alice Martin',email:'a.martin@company.com'},{name:'Bob Chen',email:'b.chen@company.com'}], calId:'demo-cal-1', created:'2026-04-01' },
+        { id:'demo2', title:'Power BI for Beginners', date:'2026-05-14', time:'13:30', location:'Training Suite B', desc:'Build dashboards, connect data sources, and share reports in Power BI.', capacity:20, attendees:[], calId:null, created:'2026-04-03' },
+        { id:'demo3', title:'SharePoint Collaboration', date:'2026-05-21', time:'09:00', location:'Room 2C · Headquarters', desc:'Team sites, document libraries, permission management, and co-authoring.', capacity:12, attendees:[{name:'Carlos Diaz',email:'c.diaz@company.com'},{name:'Priya Patel',email:'p.patel@company.com'}], calId:'demo-cal-3', created:'2026-04-05' },
+        { id:'demo4', title:'Teams Advanced Features', date:'2026-06-02', time:'11:00', location:'Virtual · Microsoft Teams', desc:'Channels, meeting rooms, breakout sessions, and Copilot in Teams.', capacity:30, attendees:[{name:'Danielle Wu',email:'d.wu@company.com'}], calId:null, created:'2026-04-07' },
+      ];
+      return;
+    }
+    this.loading = true;
+    try {
+      this.events = await Graph.getEvents();
+    } catch (e) {
+      toast('Could not load events from SharePoint: ' + e.message);
+      this.events = [];
+    }
+    this.loading = false;
+  },
+
+  go(page) {
+    if ((page === 'admin' || page === 'setup') && !this.adminAuthed) {
+      this.page = 'login';
+    } else {
+      this.page = page;
+    }
+    this.render();
+  },
+
+  render() {
+    const pages = { public: 'renderPublic', login: 'renderLogin', admin: 'renderAdmin', setup: 'renderSetup' };
+    const fn = pages[this.page] || 'renderPublic';
+    this[fn]();
+    // Update nav active states
+    ['public','admin','setup'].forEach(p => {
+      const el = document.getElementById('nav-' + p);
+      if (el) el.classList.toggle('active', this.page === p);
+    });
+  },
+
+  /* ── PUBLIC VIEW ──────────────────────────────────────── */
+  renderPublic() {
+    document.getElementById('topbar-title').textContent = 'Training events';
+    document.getElementById('topbar-sub').textContent = `${this.events.length} sessions available`;
+    document.getElementById('topbar-actions').innerHTML = this.msAccount
+      ? `<div style="display:flex;align-items:center;gap:8px">
+           <div style="text-align:right">
+             <div style="font-size:13px;font-weight:600">${this.userProfile?.name || ''}</div>
+             <div style="font-size:11px;color:var(--text3)">${this.userProfile?.email || ''}</div>
+           </div>
+           <div class="user-avatar" style="width:32px;height:32px;font-size:12px">${initials(this.userProfile?.name || '?')}</div>
+           <button class="btn btn-ghost btn-sm" onclick="App.signOut()" title="Sign out">
+             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 7h6M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 2H2v10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+           </button>
+         </div>`
+      : `<button class="btn btn-ms" onclick="App.connectM365()">
+           <svg width="14" height="14" viewBox="0 0 14 14"><rect x="0.5" y="0.5" width="6" height="6" fill="#f35325"/><rect x="7.5" y="0.5" width="6" height="6" fill="#81bc06"/><rect x="0.5" y="7.5" width="6" height="6" fill="#05a6f0"/><rect x="7.5" y="7.5" width="6" height="6" fill="#ffba08"/></svg>
+           Sign in with Microsoft
+         </button>`;
+
+    const tiles = this.events.length
+      ? this.events.map(ev => {
+          const p = pct(ev);
+          return `<div class="event-tile" onclick="App.openRegister('${ev.id}')">
+            <div class="tile-date">${fmtDate(ev.date, ev.time)} · ${fmtTime(ev.time)}</div>
+            <div class="tile-title">${ev.title}</div>
+            <div class="tile-loc">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1a3.5 3.5 0 013.5 3.5C9.5 7.5 6 11 6 11S2.5 7.5 2.5 4.5A3.5 3.5 0 016 1z" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="4.5" r="1" fill="currentColor"/></svg>
+              ${ev.location}
+            </div>
+            <div class="prog-bar"><div class="prog-fill" style="width:${p}%;background:${progColor(p)}"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              ${statusBadge(ev)}
+              <span style="font-size:11px;color:var(--text3)">${ev.attendees.length}/${ev.capacity}</span>
+            </div>
+          </div>`;
+        }).join('')
+      : '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text2)">No training events scheduled yet.</div>';
+
+    document.getElementById('content').innerHTML = `<div class="event-grid">${tiles}</div>`;
+  },
+
+  /* ── REGISTER MODAL ───────────────────────────────────── */
+  openRegister(id) {
+    const ev = this.events.find(e => e.id == id);
+    if (!ev) return;
+    const full    = spots(ev) === 0;
+    const u       = this.userProfile;
+    const alreadyReg = u && ev.attendees.find(a => a.email.toLowerCase() === u.email.toLowerCase());
+
+    showModal(`<div class="modal">
+      <div class="modal-hd">
+        <div class="modal-title">${ev.title}</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()" style="padding:4px 9px">✕</button>
+      </div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">${fmtDate(ev.date, ev.time)} · ${fmtTime(ev.time)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${statusBadge(ev)} ${calBadge(ev)}</div>
+      <div class="notice notice-blue" style="margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M6 1a3.5 3.5 0 013.5 3.5C9.5 7.5 6 11 6 11S2.5 7.5 2.5 4.5A3.5 3.5 0 016 1z" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="4.5" r="1" fill="currentColor"/></svg>
+        ${ev.location}
+      </div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${ev.desc}</p>
+      ${ev.attendees.length ? `
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Registered (${ev.attendees.length})</div>
+        <div class="chips">
+          ${ev.attendees.map(a => `<div class="chip"><div class="chip-av">${initials(a.name)}</div>${a.name}</div>`).join('')}
+        </div>
+        <div class="div"></div>` : ''}
+
+      ${alreadyReg ? `
+        <div class="notice notice-green">You are already registered for this session. Check your Outlook calendar for the invite.</div>
+        <div style="margin-top:12px"><button class="btn" onclick="closeModal()">Close</button></div>
+
+      ` : full ? `
+        <div class="notice notice-amber">This session is full. Contact your training coordinator to join a waitlist.</div>
+        <div style="margin-top:12px"><button class="btn" onclick="closeModal()">Close</button></div>
+
+      ` : !this.msAccount ? `
+        <div class="div"></div>
+        <p style="font-size:14px;font-weight:600;margin-bottom:8px">Sign in to register</p>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Sign in with your Microsoft 365 account to register. Your name and email will be filled in automatically.</p>
+        <button class="btn btn-ms" style="width:100%;justify-content:center;padding:10px" onclick="App.signInThenRegister('${ev.id}')">
+          <svg width="16" height="16" viewBox="0 0 14 14"><rect x="0.5" y="0.5" width="6" height="6" fill="#f35325"/><rect x="7.5" y="0.5" width="6" height="6" fill="#81bc06"/><rect x="0.5" y="7.5" width="6" height="6" fill="#05a6f0"/><rect x="7.5" y="7.5" width="6" height="6" fill="#ffba08"/></svg>
+          Sign in with Microsoft
+        </button>
+        <div id="signin-msg" style="margin-top:10px"></div>
+
+      ` : `
+        <div class="div"></div>
+        <p style="font-size:14px;font-weight:600;margin-bottom:12px">Register for this session</p>
+        <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+          <div class="user-avatar" style="width:40px;height:40px;font-size:14px;flex-shrink:0">${initials(u.name)}</div>
+          <div style="min-width:0">
+            <div style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
+            <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
+          </div>
+          <span class="badge badge-blue" style="margin-left:auto;flex-shrink:0">M365</span>
+        </div>
+        <div class="notice notice-teal" style="margin-bottom:14px;font-size:12px">
+          Registering will ${ev.calId ? 'add you as an attendee on the existing Outlook calendar event' : 'create a new Outlook calendar event'} and send a calendar invite to your inbox.
+        </div>
+        <div id="reg-msg"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" id="reg-btn" onclick="App.submitRegister('${ev.id}')">Sign up</button>
+          <button class="btn" onclick="closeModal()">Cancel</button>
+        </div>
+      `}
+    </div>`);
+  },
+
+  /* Sign in via popup then immediately open the register modal for that event */
+  async signInThenRegister(id) {
+    const msgEl = document.getElementById('signin-msg');
+    if (msgEl) msgEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)"><span class="spinner"></span> Opening Microsoft sign-in...</div>';
+    try {
+      const res = await msalInstance.loginPopup({ scopes: SCOPES });
+      this.msAccount = res.account;
+      await this.fetchUserProfile();
+      this.updateUserArea();
+      await this.loadEvents();
+      this.render();                    // re-render public view (updates topbar)
+      this.openRegister(id);            // re-open same modal, now signed in
+    } catch (e) {
+      if (msgEl) msgEl.innerHTML = `<div class="notice notice-red">Sign-in failed: ${e.message}</div>`;
+    }
+  },
+
+  async submitRegister(id) {
+    const ev     = this.events.find(e => e.id == id);
+    if (!ev) return;
+    const u      = this.userProfile;
+    const name   = u?.name?.trim();
+    const email  = u?.email?.trim();
+    const msgEl  = document.getElementById('reg-msg');
+    const btn    = document.getElementById('reg-btn');
+
+    if (!name || !email) {
+      if (msgEl) msgEl.innerHTML = '<div class="notice notice-amber" style="margin-bottom:8px">Could not read your Microsoft profile. Please try signing out and back in.</div>';
+      return;
+    }
+    if (ev.attendees.find(a => a.email.toLowerCase() === email.toLowerCase())) {
+      if (msgEl) msgEl.innerHTML = '<div class="notice notice-amber" style="margin-bottom:8px">You are already registered for this event.</div>';
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Signing up...'; }
+
+    const attendee = { name, email };
+    ev.attendees.push(attendee);
+    const wasFirst = !ev.calId;
+
+    try {
+      if (this.msAccount) {
+        if (wasFirst) {
+          ev.calId = await Graph.createCalendarEvent(ev, attendee);
+        } else {
+          await Graph.addAttendeeToCalEvent(ev.calId, attendee, ev.attendees);
+        }
+        await Graph.updateEventItem(ev.id, ev.attendees, wasFirst ? ev.calId : null);
+
+        if (msgEl) msgEl.innerHTML = `<div class="notice notice-green" style="margin-bottom:8px">
+          ✓ Done! ${wasFirst ? 'A new Outlook calendar event has been created.' : 'You have been added to the existing calendar event.'} An invite has been sent to ${email}.
+        </div>`;
+      } else {
+        if (msgEl) msgEl.innerHTML = `<div class="notice notice-green" style="margin-bottom:8px">
+          ✓ Registered (demo mode)! In production, an Outlook calendar invite would be sent to ${email}.
+        </div>`;
+      }
+      if (btn) btn.textContent = 'Done';
+      setTimeout(() => { closeModal(); this.renderPublic(); }, 2000);
+    } catch (e) {
+      ev.attendees = ev.attendees.filter(a => a.email !== email);
+      ev.calId = wasFirst ? null : ev.calId;
+      if (msgEl) msgEl.innerHTML = `<div class="notice notice-red" style="margin-bottom:8px">Error: ${e.message}</div>`;
+      if (btn) { btn.disabled = false; btn.textContent = 'Try again'; }
+    }
+  },
+
+  /* ── LOGIN ────────────────────────────────────────────── */
+  renderLogin() {
+    document.getElementById('topbar-title').textContent = 'Admin access';
+    document.getElementById('topbar-sub').textContent = '';
+    document.getElementById('topbar-actions').innerHTML = '';
+    document.getElementById('content').innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <div style="font-size:17px;font-weight:700;margin-bottom:6px">Admin sign in</div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1.25rem">Enter the admin password to manage events and view the M365 configuration.</p>
+          <div class="field"><label>Password</label>
+            <input type="password" id="admin-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')App.tryLogin()">
+          </div>
+          <div id="login-err" style="font-size:13px;color:var(--red);min-height:18px;margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="App.tryLogin()">Sign in</button>
+            <button class="btn" onclick="App.go('public')">Cancel</button>
+          </div>
+        </div>
+      </div>`;
+    setTimeout(() => document.getElementById('admin-pw')?.focus(), 50);
+  },
+
+  tryLogin() {
+    const pw = document.getElementById('admin-pw')?.value;
+    if (pw === CONFIG.adminPassword) {
+      this.adminAuthed = true;
+      this.go('admin');
+    } else {
+      document.getElementById('login-err').textContent = 'Incorrect password.';
+    }
+  },
+
+  /* ── ADMIN VIEW ───────────────────────────────────────── */
+  renderAdmin() {
+    document.getElementById('topbar-title').textContent = 'Manage events';
+    document.getElementById('topbar-sub').textContent = `${this.events.length} events`;
+    document.getElementById('topbar-actions').innerHTML = `
+      ${!this.msAccount ? `<button class="btn btn-ms" onclick="App.connectM365()">
+        <svg width="14" height="14" viewBox="0 0 14 14"><rect x="0.5" y="0.5" width="6" height="6" fill="#f35325"/><rect x="7.5" y="0.5" width="6" height="6" fill="#81bc06"/><rect x="0.5" y="7.5" width="6" height="6" fill="#05a6f0"/><rect x="7.5" y="7.5" width="6" height="6" fill="#ffba08"/></svg>
+        Connect M365
+      </button>` : ''}
+      <button class="btn btn-primary" onclick="App.openNewEvent()">+ New event</button>
+      <button class="btn btn-ghost btn-sm" onclick="App.logout()" title="Sign out">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 7h6M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 2H2v10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>`;
+
+    const totalReg = this.events.reduce((s, e) => s + e.attendees.length, 0);
+    const calLinked = this.events.filter(e => e.calId).length;
+    const fullEvents = this.events.filter(e => spots(e) === 0).length;
+
+    document.getElementById('content').innerHTML = `
+      ${!this.msAccount ? '<div class="notice notice-amber" style="margin-bottom:1.25rem">Connect your Microsoft 365 account to enable SharePoint persistence and automatic Outlook calendar creation.</div>' : ''}
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-label">Events</div><div class="stat-val">${this.events.length}</div></div>
+        <div class="stat"><div class="stat-label">Registrations</div><div class="stat-val">${totalReg}</div></div>
+        <div class="stat"><div class="stat-label">Calendar linked</div><div class="stat-val">${calLinked}</div></div>
+        <div class="stat"><div class="stat-label">Full</div><div class="stat-val">${fullEvents}</div></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th>Event</th><th>Date &amp; time</th><th>Location</th><th>Fill</th><th>Calendar</th><th style="text-align:right">Actions</th>
+          </tr></thead>
+          <tbody>
+            ${this.events.length ? this.events.map(ev => {
+              const p = pct(ev);
+              return `<tr>
+                <td><span style="font-weight:600">${ev.title}</span></td>
+                <td style="font-size:12px;white-space:nowrap">${fmtDate(ev.date, ev.time)}<br><span style="color:var(--text2)">${fmtTime(ev.time)}</span></td>
+                <td style="font-size:12px;color:var(--text2);max-width:160px">${ev.location}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="width:64px;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+                      <div style="height:100%;width:${p}%;background:${progColor(p)};border-radius:2px"></div>
+                    </div>
+                    <span style="font-size:12px;color:var(--text2)">${ev.attendees.length}/${ev.capacity}</span>
+                  </div>
+                </td>
+                <td>${calBadge(ev)}</td>
+                <td style="text-align:right">
+                  <div style="display:flex;gap:5px;justify-content:flex-end">
+                    <button class="btn btn-sm" onclick="App.openAttendees('${ev.id}')">Attendees</button>
+                    <button class="btn btn-sm btn-danger" onclick="App.deleteEvent('${ev.id}')">Delete</button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('') : '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text2)">No events yet. Create one above.</td></tr>'}
+          </tbody>
+        </table>
+      </div>`;
+  },
+
+  /* ── NEW EVENT MODAL ──────────────────────────────────── */
+  openNewEvent() {
+    showModal(`<div class="modal">
+      <div class="modal-hd">
+        <div class="modal-title">New training event</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()" style="padding:4px 9px">✕</button>
+      </div>
+      <div class="field"><label>Title</label><input type="text" id="ne-title" placeholder="e.g. Excel Fundamentals"></div>
+      <div class="form-row">
+        <div class="field"><label>Date</label><input type="date" id="ne-date"></div>
+        <div class="field"><label>Time</label><input type="time" id="ne-time" value="09:00"></div>
+      </div>
+      <div class="field"><label>Location</label><input type="text" id="ne-loc" placeholder="e.g. Room 4A or Teams link"></div>
+      <div class="field"><label>Description</label><textarea id="ne-desc" rows="3" placeholder="What will attendees learn?"></textarea></div>
+      <div class="field" style="width:120px"><label>Capacity</label><input type="number" id="ne-cap" value="20" min="1"></div>
+      ${this.msAccount ? '<div class="notice notice-teal" style="margin:10px 0;font-size:12px">Event will be saved to SharePoint. An Outlook calendar event is created automatically on the first registration.</div>' : '<div class="notice notice-amber" style="margin:10px 0;font-size:12px">Connect M365 to enable SharePoint persistence and automatic calendar creation.</div>'}
+      <div id="ne-msg"></div>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <button class="btn btn-primary" id="ne-btn" onclick="App.saveNewEvent()">Create event</button>
+        <button class="btn" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>`);
+  },
+
+  async saveNewEvent() {
+    const title = document.getElementById('ne-title').value.trim();
+    const date  = document.getElementById('ne-date').value;
+    const time  = document.getElementById('ne-time').value;
+    const loc   = document.getElementById('ne-loc').value.trim();
+    const desc  = document.getElementById('ne-desc').value.trim();
+    const cap   = parseInt(document.getElementById('ne-cap').value) || 20;
+    const msgEl = document.getElementById('ne-msg');
+    const btn   = document.getElementById('ne-btn');
+
+    if (!title || !date || !time || !loc) {
+      msgEl.innerHTML = '<div class="notice notice-amber" style="margin-bottom:8px">Please fill in title, date, time, and location.</div>';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating...';
+
+    const evObj = { title, date, time, location: loc, desc, capacity: cap, attendees: [], calId: null };
+
+    try {
+      if (this.msAccount) {
+        const spId = await Graph.createEvent(evObj);
+        evObj.id = spId;
+        evObj.created = new Date().toISOString().slice(0, 10);
+      } else {
+        evObj.id = 'local-' + Date.now();
+        evObj.created = new Date().toISOString().slice(0, 10);
+      }
+      this.events.push(evObj);
+      closeModal();
+      toast(`"${title}" created successfully`);
+      this.renderAdmin();
+    } catch (e) {
+      msgEl.innerHTML = `<div class="notice notice-red" style="margin-bottom:8px">Error: ${e.message}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Try again';
+    }
+  },
+
+  /* ── ATTENDEES MODAL ──────────────────────────────────── */
+  openAttendees(id) {
+    const ev = this.events.find(e => e.id == id);
+    if (!ev) return;
+    showModal(`<div class="modal">
+      <div class="modal-hd">
+        <div>
+          <div class="modal-title">${ev.title}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${ev.attendees.length} of ${ev.capacity} registered</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()" style="padding:4px 9px">✕</button>
+      </div>
+      ${ev.calId ? `<div class="notice notice-green" style="margin-bottom:12px;font-size:12px">Outlook event ID: <code style="font-family:var(--mono)">${ev.calId}</code></div>` : ''}
+      ${ev.attendees.length ? `
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <th style="text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:6px 0">Name</th>
+            <th style="text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:6px 0">Email</th>
+          </tr>
+          ${ev.attendees.map(a => `<tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:8px 0">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="chip-av" style="width:26px;height:26px;font-size:10px">${initials(a.name)}</div>
+                <span style="font-weight:500">${a.name}</span>
+              </div>
+            </td>
+            <td style="padding:8px 0;font-size:12px;color:var(--text2)">${a.email}</td>
+          </tr>`).join('')}
+        </table>
+      ` : '<div style="text-align:center;padding:2rem;color:var(--text2);font-size:13px">No registrations yet.</div>'}
+      <div style="margin-top:14px"><button class="btn" onclick="closeModal()">Close</button></div>
+    </div>`);
+  },
+
+  /* ── DELETE EVENT ─────────────────────────────────────── */
+  async deleteEvent(id) {
+    if (!confirm('Delete this event? This cannot be undone.')) return;
+    const ev = this.events.find(e => e.id == id);
+    if (!ev) return;
+    try {
+      if (this.msAccount) {
+        await Graph.deleteEvent(id);
+        if (ev.calId) {
+          await Graph.deleteCalendarEvent(ev.calId).catch(() => {}); // best effort
+        }
+      }
+      this.events = this.events.filter(e => e.id != id);
+      toast(`"${ev.title}" deleted`);
+      this.renderAdmin();
+    } catch (e) {
+      toast('Error deleting event: ' + e.message);
+    }
+  },
+
+  /* ── SETUP VIEW ───────────────────────────────────────── */
+  renderSetup() {
+    document.getElementById('topbar-title').textContent = 'Microsoft 365 setup';
+    document.getElementById('topbar-sub').textContent = 'Azure · Graph API · SharePoint';
+    document.getElementById('topbar-actions').innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="App.logout()">Sign out admin</button>`;
+
+    document.getElementById('content').innerHTML = `
+      <div style="max-width:700px">
+
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:14px">Step 1 — Register an Azure app</div>
+          <div class="step-row">
+            <div class="step-num">1</div>
+            <div><strong>Go to</strong> <a href="https://portal.azure.com" target="_blank" style="color:var(--blue)">portal.azure.com</a> → Azure Active Directory → App registrations → New registration</div>
+          </div>
+          <div class="step-row">
+            <div class="step-num">2</div>
+            <div>Set the <strong>Redirect URI</strong> to <code style="font-family:var(--mono);font-size:12px;background:var(--bg2);padding:2px 6px;border-radius:4px">${window.location.origin + window.location.pathname}</code></div>
+          </div>
+          <div class="step-row">
+            <div class="step-num">3</div>
+            <div>Copy your <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong> and paste them into the <code style="font-family:var(--mono);font-size:12px;background:var(--bg2);padding:2px 6px;border-radius:4px">CONFIG</code> block at the top of index.html</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:10px">Step 2 — API permissions</div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">In your app registration, go to API permissions → Add a permission → Microsoft Graph → Delegated permissions, and add all four:</p>
+          ${[
+            ['Calendars.ReadWrite',  'Create and update Outlook calendar events; add attendees'],
+            ['Sites.ReadWrite.All',  'Read and write SharePoint Lists (event storage)'],
+            ['User.Read',            'Read the signed-in admin&#39;s profile'],
+            ['offline_access',       'Allow background token refresh'],
+          ].map(([p, d]) => `<div class="perm-row">
+            <div>
+              <code style="font-family:var(--mono);font-size:13px;font-weight:600">${p}</code>
+              <span style="font-size:12px;color:var(--text2);margin-left:10px">${d}</span>
+            </div>
+            <span class="badge badge-teal">Delegated</span>
+          </div>`).join('')}
+          <div class="notice notice-amber" style="margin-top:12px;font-size:12px">After adding permissions, click <strong>Grant admin consent</strong> so users are not prompted individually.</div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:10px">Step 3 — Create the SharePoint List</div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:10px">In your SharePoint site, create a list named <code style="font-family:var(--mono);font-size:12px;background:var(--bg2);padding:2px 6px;border-radius:4px">TrainingEvents</code> with these columns:</p>
+          <div class="code">Title           → Single line of text     (event name, built-in)
+EventDate       → Date and Time            (date + time of session)
+Location        → Single line of text     (room or Teams link)
+Description     → Multiple lines of text  (session description)
+Capacity        → Number                  (max attendees)
+OutlookEventId  → Single line of text     (Graph API calendar event ID)
+Attendees       → Multiple lines of text  (JSON array of {name,email})</div>
+          <div class="notice notice-blue" style="margin-top:10px;font-size:12px">Then update <code style="font-family:var(--mono)">CONFIG.spSiteUrl</code> and <code style="font-family:var(--mono)">CONFIG.spListName</code> in index.html.</div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:15px;font-weight:600;margin-bottom:10px">Step 4 — Deploy</div>
+          ${[
+            ['IIS / Apache / Nginx', 'Drop index.html into your web root. No server-side code needed — everything runs in the browser via Graph API.'],
+            ['SharePoint page',      'Upload index.html as an asset and embed it in a modern page using a Full Width Script Editor or SPFx web part.'],
+            ['Azure Static Web Apps','Push to GitHub and connect to Azure Static Web Apps for free hosting with built-in CI/CD.'],
+          ].map(([h, d]) => `<div style="margin-bottom:10px"><strong style="font-size:13px">${h}</strong><p style="font-size:13px;color:var(--text2);margin-top:2px">${d}</p></div>`).join('<div class="div"></div>')}
+        </div>
+
+      </div>`;
+  },
+
+  signOut() {
+    msalInstance.logoutPopup().catch(() => {});
+    this.msAccount   = null;
+    this.userProfile = null;
+    document.getElementById('user-initials').textContent = '--';
+    document.getElementById('user-name').textContent     = 'Not signed in';
+    document.getElementById('status-dot').className      = 'status-dot off';
+    document.getElementById('status-text').textContent   = 'M365 disconnected';
+    this.loadEvents().then(() => this.render());
+  },
+
+  logout() {
+    this.adminAuthed = false;
+    this.go('public');
+  }
+};
+
+/* Boot */
+App.init().catch(e => {
+  console.error('Init error:', e);
+  document.getElementById('content').innerHTML = `<div class="notice notice-amber">Failed to initialise: ${e.message}. Check your CONFIG settings.</div>`;
+});
+
+} // end bootApp
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+  bootApp();
+}
+</script>
+</body>
+</html>
